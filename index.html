@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Playlist Generator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="card">
+      <div class="card-header">
+        <h3>Generate YouTube Uploads Playlist URL</h3>
+      </div>
+      <div class="card-body">
+        <form id="playlistForm">
+          <div class="mb-3">
+            <label for="channelId" class="form-label">Enter Channel ID (starts with UC...)</label>
+            <input type="text" class="form-control" id="channelId" required>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="includeShorts" value="1">
+            <label class="form-check-label" for="includeShorts">
+              Include Shorts
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary">Generate URL</button>
+        </form>
+        <div class="mt-3" id="result" style="display: none;">
+          <label class="form-label">Playlist URL:</label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="playlistUrl" readonly>
+            <button class="btn btn-outline-secondary" onclick="copyUrl()">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('playlistForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const ucId = document.getElementById('channelId').value.trim();
+      const includeShorts = document.getElementById('includeShorts').checked;
+      if (!ucId.startsWith('UC')) {
+        alert('Channel ID must start with UC');
+        return;
+      }
+
+      const idSuffix = ucId.slice(2); // remove 'UC'
+      const prefix = includeShorts ? 'UU' : 'UULF';
+      const playlistId = prefix + idSuffix;
+      const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+
+      document.getElementById('playlistUrl').value = playlistUrl;
+      document.getElementById('result').style.display = 'block';
+    });
+
+    function copyUrl() {
+      const input = document.getElementById('playlistUrl');
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+    }
+  </script>
+</body>
+</html>
