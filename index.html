@@ -1,67 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-  <title>YouTube Playlist Redirect</title>
+  <title>YouTube Playlist Finder</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
-
 <body>
   <div class="container mt-5">
     <div class="card">
       <div class="card-header">
-        <h3>Open YouTube Uploads Playlist</h3>
+        <h3>Get Channel Playlist</h3>
       </div>
       <div class="card-body">
-        <form id="playlistForm">
+        <form id="videoForm">
           <div class="mb-3">
-            <label for="channelId" class="form-label">Enter Channel ID (starts with UC...)</label>
-            <input type="text" class="form-control" id="channelId" required>
+            <label for="videoUrl" class="form-label">Enter YouTube Video URL</label>
+            <input type="url" class="form-control" id="videoUrl" required>
           </div>
           <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="includeShorts" value="1">
-            <label class="form-check-label" for="includeShorts">
-              Include Shorts
-            </label>
+            <input class="form-check-input" type="checkbox" id="includeShorts">
+            <label class="form-check-label" for="includeShorts">Include Shorts</label>
           </div>
           <button type="submit" class="btn btn-primary">Open Playlist</button>
         </form>
-      </div>
-      <div class="card-body">
-        <h4>Steps</h4>
-        <ul>
-          <li>Open a YouTube Channel (eg https://www.youtube.com/@DonutOperator)</li>
-          <li>View page source</li>
-          <li>Search for the "UC" channel id (Ctrl + F, "=UC")</li>
-          <li>Copy channel id (eg UCwkm_Wcyh0pc7UUmZZfL-6w)</li>
-          <li>Paste into tool</li>
-          <li>Profit</li>
-        </ul>
+        <div id="status" class="mt-3 text-muted small"></div>
       </div>
     </div>
   </div>
 
   <script>
-    document.getElementById('playlistForm').addEventListener('submit', function (e) {
+    document.getElementById('videoForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      const ucId = document.getElementById('channelId').value.trim();
+      const videoUrl = document.getElementById('videoUrl').value.trim();
       const includeShorts = document.getElementById('includeShorts').checked;
+      const statusEl = document.getElementById('status');
+      statusEl.innerText = "Fetching video page...";
 
-      if (!ucId.startsWith('UC')) {
-        alert('Channel ID must start with UC');
-        return;
-      }
+      const apiUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(videoUrl);
 
-      const idSuffix = ucId.slice(2);
-      const prefix = includeShorts ? 'UU' : 'UULF';
-      const playlistId = prefix + idSuffix;
-      const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+      fetch(apiUrl)
+        .then(response => {
+          if (!response.ok) throw new Error("CORS proxy error.");
+          return response.json();
+        })
+        .then(data => {
+          const html = data.contents;
 
-      // Redirect immediately
-      window.location.href = playlistUrl;
+          // Try to extract UC channel ID from page source
+          const match = html.match(/"externalId":"(UC[\w-]{20,})"/);
+
+          if (match && match[1]) {
+            const ucId = match[1];
+            const idSuffix = ucId.slice(2);
+            const prefix = includeShorts ? 'UU' : 'UULF';
+            const playlistUrl = `https://www.youtube.com/playlist?list=${prefix}${idSuffix}`;
+            window.location.href = playlistUrl;
+          } else {
+            // If extraction failed, ask the user to paste UC manually
+            const fallbackId = prompt("Couldn't auto-detect channel ID. Please enter the full UC ID manually:");
+            if (fallbackId && fallbackId.startsWith("UC")) {
+              const idSuffix = fallbackId.slice(2);
+              const prefix = includeShorts ? 'UU' : 'UULF';
+              const playlistUrl = `https://www.youtube.com/playlist?list=${prefix}${idSuffix}`;
+              window.location.href = playlistUrl;
+            } else {
+              statusEl.innerText = "No valid channel ID provided.";
+            }
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          statusEl.innerText = "Failed to fetch video page. Check the URL or try again later.";
+        });
     });
   </script>
 </body>
-
 </html>
